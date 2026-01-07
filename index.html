@@ -40,24 +40,20 @@
         /* CORREÇÃO DO CAMPO DE TEXTO (INPUT) */
         .input-pro {
             width: 100%;
-            background-color: #18181b !important; /* Força fundo escuro */
-            color: #ffffff !important;            /* Força texto branco */
+            background-color: #18181b !important;
+            color: #ffffff !important;
             border: 1px solid #27272a;
             border-radius: 0.5rem;
             padding: 0.75rem 1rem;
-            font-size: 16px; /* Evita zoom no iOS */
+            font-size: 16px;
             outline: none;
             transition: all 0.2s;
-            appearance: none; /* Remove estilo nativo do iOS */
+            appearance: none;
         }
         
         .input-pro:focus {
             border-color: #10b981;
             box-shadow: 0 0 0 1px #10b981;
-        }
-        
-        .input-pro::placeholder {
-            color: #71717a; /* Cinza para o texto de exemplo */
         }
 
         .label-pro { 
@@ -73,10 +69,11 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
+        /* Safe Area para iPhone X+ */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
-<body class="antialiased h-screen flex overflow-hidden selection:bg-primary/30">
+<body class="antialiased h-[100dvh] flex overflow-hidden selection:bg-primary/30">
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxZWXwZ3B1lbEZ1Ra0Z8Q2sNmlsYnS7gpfYdgaHvFzC4-FCH9SU7P6o8Kf6nt6hhE1VSg/exec"; 
@@ -84,7 +81,7 @@
 
     <div x-data="app()" x-init="init()" class="w-full h-full flex flex-col relative">
 
-        <header class="h-16 border-b border-border bg-surface/50 backdrop-blur flex justify-between items-center px-4 z-20 sticky top-0">
+        <header class="h-16 border-b border-border bg-surface/50 backdrop-blur flex justify-between items-center px-4 z-20 sticky top-0 shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold">M</div>
                 <div>
@@ -98,7 +95,7 @@
             </button>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4 pb-24 custom-scrollbar">
+        <main class="flex-1 overflow-y-auto p-4 pb-32 custom-scrollbar">
             
             <div x-show="loading && !data.kmAtual" class="flex flex-col items-center justify-center py-20">
                 <i data-lucide="loader-2" class="w-8 h-8 text-primary animate-spin mb-3"></i>
@@ -219,7 +216,7 @@
 
         </main>
 
-        <nav class="bg-surface/90 backdrop-blur border-t border-border h-16 flex items-center justify-around z-30 pb-safe">
+        <nav class="fixed bottom-0 left-0 w-full bg-surface/90 backdrop-blur border-t border-border h-16 flex items-center justify-around z-40 pb-safe">
             <button @click="tab = 'home'" :class="tab === 'home' ? 'text-primary' : 'text-zinc-500'" class="flex flex-col items-center gap-1 active:scale-95 transition w-16">
                 <i data-lucide="layout-grid" class="w-5 h-5"></i>
                 <span class="text-[9px] font-bold uppercase">Visão</span>
@@ -241,7 +238,7 @@
 
         <div x-show="modalAbastOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
             <div x-show="modalAbastOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalAbastOpen = false"></div>
-            <div x-show="modalAbastOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4">
+            <div x-show="modalAbastOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 pb-10 sm:pb-6">
                 <div class="flex justify-between items-center"><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="fuel" class="text-primary w-4 h-4"></i> Novo Abastecimento</h3><button @click="modalAbastOpen = false"><i data-lucide="x" class="w-5 h-5 text-zinc-500"></i></button></div>
                 
                 <div><label class="label-pro">KM Atual</label><input type="number" x-model="formAbast.km" class="input-pro font-mono text-lg" placeholder="00000"></div>
@@ -256,7 +253,7 @@
 
         <div x-show="modalServiceOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
             <div x-show="modalServiceOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalServiceOpen = false"></div>
-            <div x-show="modalServiceOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div x-show="modalServiceOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto pb-10 sm:pb-6">
                 
                 <div class="flex justify-between items-center pb-2 border-b border-border">
                     <div>
@@ -287,7 +284,7 @@
 
         <div x-show="modalNewItemOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
             <div x-show="modalNewItemOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalNewItemOpen = false"></div>
-            <div x-show="modalNewItemOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4">
+            <div x-show="modalNewItemOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 pb-10 sm:pb-6">
                 <div class="flex justify-between items-center"><h3 class="font-bold text-white">Adicionar Monitoramento</h3><button @click="modalNewItemOpen = false"><i data-lucide="x" class="w-5 h-5 text-zinc-500"></i></button></div>
                 
                 <div><label class="label-pro">Nome do Item</label><input type="text" x-model="formNewItem.item" class="input-pro" placeholder="Ex: Fluido de Freio"></div>
@@ -295,7 +292,6 @@
                     <div><label class="label-pro">Intervalo (KM)</label><input type="number" x-model="formNewItem.intervalo_km" class="input-pro" placeholder="10000"></div>
                     <div><label class="label-pro">Intervalo (Dias)</label><input type="number" x-model="formNewItem.intervalo_dias" class="input-pro" placeholder="365"></div>
                 </div>
-                <p class="text-[10px] text-zinc-500 bg-bg p-2 rounded">O contador iniciará zerado (como trocado hoje). Ajuste no histórico depois se necessário.</p>
                 
                 <button @click="submitNewItem()" :disabled="sending" class="w-full bg-accent text-white font-bold py-3.5 rounded-lg mt-2 flex justify-center items-center gap-2"><span x-show="!sending">Criar Monitoramento</span><i x-show="sending" data-lucide="loader-2" class="animate-spin w-4 h-4"></i></button>
             </div>
@@ -312,17 +308,14 @@
                 loadingHistory: false,
                 sending: false,
                 
-                // Modais
                 modalAbastOpen: false,
                 modalServiceOpen: false,
                 modalNewItemOpen: false,
                 
-                // Dados
                 data: { kmAtual: 0, manutencoes: [], kpi: {} },
                 historyData: [],
-                activeItem: null, // Item sendo editado
+                activeItem: null, 
                 
-                // Forms
                 formAbast: { km: '', litros: '', valor: '' },
                 formService: { km: '', custo: '', marca: '', oficina: '', observacao: '' },
                 formNewItem: { item: '', intervalo_km: '', intervalo_dias: '' },
@@ -359,16 +352,9 @@
                     } finally { this.loadingHistory = false; }
                 },
 
-                // Actions
                 openServiceModal(item) {
                     this.activeItem = item;
-                    this.formService = { 
-                        km: this.data.kmAtual, 
-                        custo: '', 
-                        marca: '', 
-                        oficina: '', 
-                        observacao: '' 
-                    };
+                    this.formService = { km: this.data.kmAtual, custo: '', marca: '', oficina: '', observacao: '' };
                     this.modalServiceOpen = true;
                 },
 
@@ -437,7 +423,6 @@
                         return await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json());
                     } catch(e) {
                         alert("Comando enviado! Verifique se os dados apareceram.");
-                        // Recarrega para garantir
                         setTimeout(() => this.fetchData(), 1000);
                     }
                 },
