@@ -69,7 +69,6 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
-        /* Safe Area para iPhone X+ */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
@@ -89,7 +88,7 @@
                     <p class="text-[10px] text-zinc-500 font-medium">Enterprise Edition</p>
                 </div>
             </div>
-            <button @click="updateKm()" class="flex items-center gap-2 bg-bg border border-border px-3 py-1.5 rounded-md hover:border-primary/50 transition group">
+            <button @click="openKmModal()" class="flex items-center gap-2 bg-bg border border-border px-3 py-1.5 rounded-md hover:border-primary/50 transition group">
                 <i data-lucide="gauge" class="w-4 h-4 text-zinc-400 group-hover:text-primary"></i>
                 <span class="font-mono font-bold text-sm text-white" x-text="loading ? '...' : data.kmAtual + ' km'"></span>
             </button>
@@ -236,6 +235,26 @@
             </button>
         </nav>
 
+        <div x-show="modalKmOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div x-show="modalKmOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalKmOpen = false"></div>
+            <div x-show="modalKmOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 pb-10 sm:pb-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="gauge" class="text-primary w-4 h-4"></i> Atualizar Hodômetro</h3>
+                    <button @click="modalKmOpen = false"><i data-lucide="x" class="w-5 h-5 text-zinc-500"></i></button>
+                </div>
+                
+                <div class="py-2">
+                    <label class="label-pro text-center mb-2">KM Atual</label>
+                    <input type="number" x-model="formKmUpdate" class="input-pro font-mono text-3xl text-center py-4 font-bold tracking-widest text-primary border-primary/30 focus:border-primary focus:ring-4 focus:ring-primary/10" placeholder="00000" autofocus>
+                </div>
+                
+                <button @click="submitKm()" :disabled="sending" class="w-full bg-primary text-bg font-bold py-3.5 rounded-lg mt-2 flex justify-center items-center gap-2">
+                    <span x-show="!sending">Salvar Leitura</span>
+                    <i x-show="sending" data-lucide="loader-2" class="animate-spin w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
         <div x-show="modalAbastOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
             <div x-show="modalAbastOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalAbastOpen = false"></div>
             <div x-show="modalAbastOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 pb-10 sm:pb-6">
@@ -311,6 +330,7 @@
                 modalAbastOpen: false,
                 modalServiceOpen: false,
                 modalNewItemOpen: false,
+                modalKmOpen: false,
                 
                 data: { kmAtual: 0, manutencoes: [], kpi: {} },
                 historyData: [],
@@ -319,6 +339,7 @@
                 formAbast: { km: '', litros: '', valor: '' },
                 formService: { km: '', custo: '', marca: '', oficina: '', observacao: '' },
                 formNewItem: { item: '', intervalo_km: '', intervalo_dias: '' },
+                formKmUpdate: '',
 
                 get hasAlerts() {
                     if (!this.data.manutencoes) return false;
@@ -358,13 +379,24 @@
                     this.modalServiceOpen = true;
                 },
 
+                // FUNÇÃO NOVA PARA ABRIR O MODAL DE KM
+                openKmModal() {
+                    this.formKmUpdate = this.data.kmAtual;
+                    this.modalKmOpen = true;
+                },
+
+                async submitKm() {
+                    if(!this.formKmUpdate) return;
+                    this.sending = true;
+                    await this.post({action: 'km', km: Number(this.formKmUpdate)});
+                    this.modalKmOpen = false;
+                    this.sending = false;
+                    await this.fetchData();
+                },
+                
+                // (MANTIDA AQUI MAS NÃO USADA MAIS PELO BOTÃO)
                 async updateKm() {
-                    const km = prompt("Atualizar Hodômetro:", this.data.kmAtual);
-                    if(km && km != this.data.kmAtual) {
-                        this.loading = true;
-                        await this.post({action: 'km', km: Number(km)});
-                        await this.fetchData();
-                    }
+                    this.openKmModal();
                 },
 
                 async submitAbastecimento() {
