@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MotoMind Enterprise</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        bg: '#09090b', 
+                        surface: '#18181b', 
+                        border: '#27272a', 
+                        primary: '#10b981', 
+                        accent: '#3b82f6', 
+                        danger: '#ef4444', 
+                        warning: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { background-color: #09090b; color: #f4f4f5; }
+        [x-cloak] { display: none !important; }
+        
+        /* CORREÇÃO DO CAMPO DE TEXTO (INPUT) */
+        .input-pro {
+            width: 100%;
+            background-color: #18181b !important; /* Força fundo escuro */
+            color: #ffffff !important;            /* Força texto branco */
+            border: 1px solid #27272a;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 16px; /* Evita zoom no iOS */
+            outline: none;
+            transition: all 0.2s;
+            appearance: none; /* Remove estilo nativo do iOS */
+        }
+        
+        .input-pro:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 1px #10b981;
+        }
+        
+        .input-pro::placeholder {
+            color: #71717a; /* Cinza para o texto de exemplo */
+        }
+
+        .label-pro { 
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #71717a;
+            text-transform: uppercase;
+            margin-bottom: 0.375rem;
+            margin-left: 0.25rem;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 20px; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+</head>
+<body class="antialiased h-screen flex overflow-hidden selection:bg-primary/30">
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxZWXwZ3B1lbEZ1Ra0Z8Q2sNmlsYnS7gpfYdgaHvFzC4-FCH9SU7P6o8Kf6nt6hhE1VSg/exec"; 
+    </script>
+
+    <div x-data="app()" x-init="init()" class="w-full h-full flex flex-col relative">
+
+        <header class="h-16 border-b border-border bg-surface/50 backdrop-blur flex justify-between items-center px-4 z-20 sticky top-0">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold">M</div>
+                <div>
+                    <h1 class="font-bold text-sm text-white leading-tight">MotoMind</h1>
+                    <p class="text-[10px] text-zinc-500 font-medium">Enterprise Edition</p>
+                </div>
+            </div>
+            <button @click="updateKm()" class="flex items-center gap-2 bg-bg border border-border px-3 py-1.5 rounded-md hover:border-primary/50 transition group">
+                <i data-lucide="gauge" class="w-4 h-4 text-zinc-400 group-hover:text-primary"></i>
+                <span class="font-mono font-bold text-sm text-white" x-text="loading ? '...' : data.kmAtual + ' km'"></span>
+            </button>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 pb-24 custom-scrollbar">
+            
+            <div x-show="loading && !data.kmAtual" class="flex flex-col items-center justify-center py-20">
+                <i data-lucide="loader-2" class="w-8 h-8 text-primary animate-spin mb-3"></i>
+                <p class="text-xs text-zinc-500 uppercase tracking-widest">Sincronizando Banco de Dados</p>
+            </div>
+
+            <div x-show="tab === 'home'" x-transition.opacity class="space-y-6 max-w-2xl mx-auto">
+                <div class="bg-surface border border-border rounded-xl p-5 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p class="text-zinc-500 text-xs font-bold uppercase mb-1">Status da Frota</p>
+                        <h2 class="text-xl font-bold flex items-center gap-2" :class="hasAlerts ? 'text-warning' : 'text-primary'">
+                            <span x-text="hasAlerts ? 'Atenção Requerida' : 'Operacional'"></span>
+                            <span x-show="hasAlerts" class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-warning"></span>
+                            </span>
+                        </h2>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-bg border border-border flex items-center justify-center">
+                        <i data-lucide="activity" class="w-5 h-5" :class="hasAlerts ? 'text-warning' : 'text-primary'"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-surface border border-border p-4 rounded-xl">
+                        <p class="text-zinc-500 text-[10px] uppercase font-bold mb-1">Custo Total</p>
+                        <p class="text-lg font-bold text-white" x-text="'R$ ' + data.kpi?.custoTotal"></p>
+                    </div>
+                    <div class="bg-surface border border-border p-4 rounded-xl">
+                        <p class="text-zinc-500 text-[10px] uppercase font-bold mb-1">Custo Mês Atual</p>
+                        <p class="text-lg font-bold text-white" x-text="'R$ ' + data.kpi?.custoMes"></p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-zinc-500 text-xs font-bold uppercase ml-1">Alertas Ativos</p>
+                    <template x-for="m in data.manutencoes.filter(i => i.status !== 'verde')" :key="m.id">
+                        <div @click="openServiceModal(m)" class="bg-surface border border-l-4 p-4 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/5 transition"
+                             :class="m.status === 'vermelho' ? 'border-l-danger border-border' : 'border-l-warning border-border'">
+                            <div>
+                                <p class="font-bold text-sm text-white" x-text="m.item"></p>
+                                <p class="text-xs text-zinc-400" x-text="m.kmRestante + ' km restantes'"></p>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-600"></i>
+                        </div>
+                    </template>
+                    <div x-show="!hasAlerts" class="p-6 text-center border border-dashed border-border rounded-xl text-zinc-600 text-sm">
+                        Nenhuma manutenção pendente.
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="tab === 'manutencoes'" x-cloak class="space-y-4 max-w-2xl mx-auto">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-white">Plano de Manutenção</h2>
+                    <button @click="modalNewItemOpen = true" class="text-xs bg-primary/10 text-primary border border-primary/20 px-3 py-1.5 rounded-md font-bold hover:bg-primary/20 transition flex items-center gap-2">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Adicionar Item
+                    </button>
+                </div>
+                
+                <div class="grid gap-3">
+                    <template x-for="m in data.manutencoes" :key="m.id">
+                        <div @click="openServiceModal(m)" class="bg-surface border border-border p-4 rounded-xl relative group hover:border-zinc-600 transition cursor-pointer">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="font-bold text-sm text-white" x-text="m.item"></span>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border"
+                                      :class="{
+                                        'bg-primary/10 text-primary border-primary/20': m.status === 'verde',
+                                        'bg-warning/10 text-warning border-warning/20': m.status === 'amarelo',
+                                        'bg-danger/10 text-danger border-danger/20': m.status === 'vermelho'
+                                      }" x-text="m.kmRestante + ' km'"></span>
+                            </div>
+                            <div class="w-full bg-bg h-1.5 rounded-full overflow-hidden mb-2">
+                                <div class="h-full rounded-full transition-all duration-500"
+                                     :class="{ 'bg-primary': m.status === 'verde', 'bg-warning': m.status === 'amarelo', 'bg-danger': m.status === 'vermelho' }"
+                                     :style="`width: ${Math.max(0, Math.min(100, (m.kmRestante / m.intKm)*100))}%`"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-zinc-500">
+                                <span x-text="'Intervalo: ' + m.intKm + 'km'"></span>
+                                <span class="flex items-center gap-1 text-primary font-bold">REGISTRAR <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="tab === 'historico'" x-cloak class="space-y-4 max-w-2xl mx-auto">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-lg font-bold text-white">Logbook</h2>
+                    <button @click="fetchHistory()" class="p-2 bg-surface border border-border rounded-md"><i data-lucide="refresh-cw" class="w-4 h-4 text-zinc-400"></i></button>
+                </div>
+                
+                <div x-show="loadingHistory" class="text-center py-10"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto text-primary"></i></div>
+
+                <div x-show="!loadingHistory" class="space-y-3">
+                    <template x-for="(h, i) in historyData" :key="i">
+                        <div class="bg-surface border border-border p-4 rounded-xl space-y-2">
+                            <div class="flex justify-between items-start">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded bg-bg border border-border flex items-center justify-center">
+                                        <i data-lucide="check" class="w-4 h-4 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-white" x-text="h.item"></p>
+                                        <p class="text-xs text-zinc-500" x-text="formatDate(h.data)"></p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-bold text-white" x-text="'R$ ' + h.custo"></p>
+                                    <p class="text-[10px] font-mono text-zinc-500" x-text="h.km + ' KM'"></p>
+                                </div>
+                            </div>
+                            <div class="text-xs text-zinc-400 bg-bg p-2 rounded border border-border/50" x-text="h.obs"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </main>
+
+        <nav class="bg-surface/90 backdrop-blur border-t border-border h-16 flex items-center justify-around z-30 pb-safe">
+            <button @click="tab = 'home'" :class="tab === 'home' ? 'text-primary' : 'text-zinc-500'" class="flex flex-col items-center gap-1 active:scale-95 transition w-16">
+                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                <span class="text-[9px] font-bold uppercase">Visão</span>
+            </button>
+            <div class="relative -top-5">
+                <button @click="modalAbastOpen = true" class="w-14 h-14 bg-primary text-bg rounded-full shadow-lg shadow-primary/25 flex items-center justify-center border-4 border-bg active:scale-95 transition">
+                    <i data-lucide="fuel" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <button @click="tab = 'manutencoes'" :class="tab === 'manutencoes' ? 'text-primary' : 'text-zinc-500'" class="flex flex-col items-center gap-1 active:scale-95 transition w-16">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                <span class="text-[9px] font-bold uppercase">Peças</span>
+            </button>
+            <button @click="tab = 'historico'; fetchHistory()" :class="tab === 'historico' ? 'text-primary' : 'text-zinc-500'" class="flex flex-col items-center gap-1 active:scale-95 transition w-16">
+                <i data-lucide="file-clock" class="w-5 h-5"></i>
+                <span class="text-[9px] font-bold uppercase">Logs</span>
+            </button>
+        </nav>
+
+        <div x-show="modalAbastOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div x-show="modalAbastOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalAbastOpen = false"></div>
+            <div x-show="modalAbastOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4">
+                <div class="flex justify-between items-center"><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="fuel" class="text-primary w-4 h-4"></i> Novo Abastecimento</h3><button @click="modalAbastOpen = false"><i data-lucide="x" class="w-5 h-5 text-zinc-500"></i></button></div>
+                
+                <div><label class="label-pro">KM Atual</label><input type="number" x-model="formAbast.km" class="input-pro font-mono text-lg" placeholder="00000"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label-pro">Litros</label><input type="number" step="0.01" x-model="formAbast.litros" class="input-pro" placeholder="0.00"></div>
+                    <div><label class="label-pro">Valor (R$)</label><input type="number" step="0.01" x-model="formAbast.valor" class="input-pro" placeholder="0.00"></div>
+                </div>
+                
+                <button @click="submitAbastecimento()" :disabled="sending" class="w-full bg-primary text-bg font-bold py-3.5 rounded-lg mt-2 flex justify-center items-center gap-2"><span x-show="!sending">Salvar Registro</span><i x-show="sending" data-lucide="loader-2" class="animate-spin w-4 h-4"></i></button>
+            </div>
+        </div>
+
+        <div x-show="modalServiceOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div x-show="modalServiceOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalServiceOpen = false"></div>
+            <div x-show="modalServiceOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+                
+                <div class="flex justify-between items-center pb-2 border-b border-border">
+                    <div>
+                        <h3 class="font-bold text-white text-lg">Registrar Manutenção</h3>
+                        <p class="text-xs text-primary font-mono" x-text="activeItem?.item"></p>
+                    </div>
+                    <button @click="modalServiceOpen = false"><i data-lucide="x" class="w-5 h-5 text-zinc-500"></i></button>
+                </div>
+
+                <div class="space-y-4">
+                    <div><label class="label-pro">KM da Troca</label><input type="number" x-model="formService.km" class="input-pro"></div>
+                    <div><label class="label-pro">Custo Total (R$)</label><input type="number" step="0.01" x-model="formService.custo" class="input-pro" placeholder="0.00"></div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                         <div><label class="label-pro">Marca/Peça</label><input type="text" x-model="formService.marca" class="input-pro" placeholder="Ex: Mobil, Michelin"></div>
+                         <div><label class="label-pro">Oficina</label><input type="text" x-model="formService.oficina" class="input-pro" placeholder="Ex: Honda, Casa"></div>
+                    </div>
+
+                    <div><label class="label-pro">Observações</label><textarea x-model="formService.observacao" class="input-pro h-20 resize-none" placeholder="Detalhes técnicos..."></textarea></div>
+                </div>
+                
+                <button @click="submitService()" :disabled="sending" class="w-full bg-primary text-bg font-bold py-3.5 rounded-lg flex justify-center items-center gap-2">
+                    <span x-show="!sending">Confirmar Manutenção</span>
+                    <i x-show="sending" data-lucide="loader-2" class="animate-spin w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="modalNewItemOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div x-show="modalNewItemOpen" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="modalNewItemOpen = false"></div>
+            <div x-show="modalNewItemOpen" x-transition.move.bottom class="bg-surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border-t sm:border border-border relative z-50 p-6 flex flex-col gap-4">
+                <div class="flex justify-between items-center"><h3 class="font-bold text-white">Adicionar Monitoramento</h3><button @click="modalNewItemOpen = false"><i data-lucide="x" class="w-5 h-5 text-zinc-500"></i></button></div>
+                
+                <div><label class="label-pro">Nome do Item</label><input type="text" x-model="formNewItem.item" class="input-pro" placeholder="Ex: Fluido de Freio"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label-pro">Intervalo (KM)</label><input type="number" x-model="formNewItem.intervalo_km" class="input-pro" placeholder="10000"></div>
+                    <div><label class="label-pro">Intervalo (Dias)</label><input type="number" x-model="formNewItem.intervalo_dias" class="input-pro" placeholder="365"></div>
+                </div>
+                <p class="text-[10px] text-zinc-500 bg-bg p-2 rounded">O contador iniciará zerado (como trocado hoje). Ajuste no histórico depois se necessário.</p>
+                
+                <button @click="submitNewItem()" :disabled="sending" class="w-full bg-accent text-white font-bold py-3.5 rounded-lg mt-2 flex justify-center items-center gap-2"><span x-show="!sending">Criar Monitoramento</span><i x-show="sending" data-lucide="loader-2" class="animate-spin w-4 h-4"></i></button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- LOGIC ---
+        function app() {
+            return {
+                tab: 'home',
+                loading: true,
+                loadingHistory: false,
+                sending: false,
+                
+                // Modais
+                modalAbastOpen: false,
+                modalServiceOpen: false,
+                modalNewItemOpen: false,
+                
+                // Dados
+                data: { kmAtual: 0, manutencoes: [], kpi: {} },
+                historyData: [],
+                activeItem: null, // Item sendo editado
+                
+                // Forms
+                formAbast: { km: '', litros: '', valor: '' },
+                formService: { km: '', custo: '', marca: '', oficina: '', observacao: '' },
+                formNewItem: { item: '', intervalo_km: '', intervalo_dias: '' },
+
+                get hasAlerts() {
+                    if (!this.data.manutencoes) return false;
+                    return this.data.manutencoes.some(m => m.status === 'vermelho' || m.status === 'amarelo');
+                },
+
+                async init() {
+                    lucide.createIcons();
+                    await this.fetchData();
+                    window.addEventListener('resize', () => this.$nextTick(() => lucide.createIcons()));
+                },
+
+                async fetchData() {
+                    try {
+                        const res = await fetch(`${API_URL}?action=status&t=${Date.now()}`);
+                        this.data = await res.json();
+                        this.formAbast.km = this.data.kmAtual;
+                    } catch (e) { console.error(e); } 
+                    finally { 
+                        this.loading = false; 
+                        this.$nextTick(() => lucide.createIcons());
+                    }
+                },
+
+                async fetchHistory() {
+                    this.loadingHistory = true;
+                    try {
+                        const res = await fetch(`${API_URL}?action=historico&t=${Date.now()}`);
+                        const raw = await res.json();
+                        this.historyData = raw.sort((a, b) => new Date(b.data) - new Date(a.data));
+                    } finally { this.loadingHistory = false; }
+                },
+
+                // Actions
+                openServiceModal(item) {
+                    this.activeItem = item;
+                    this.formService = { 
+                        km: this.data.kmAtual, 
+                        custo: '', 
+                        marca: '', 
+                        oficina: '', 
+                        observacao: '' 
+                    };
+                    this.modalServiceOpen = true;
+                },
+
+                async updateKm() {
+                    const km = prompt("Atualizar Hodômetro:", this.data.kmAtual);
+                    if(km && km != this.data.kmAtual) {
+                        this.loading = true;
+                        await this.post({action: 'km', km: Number(km)});
+                        await this.fetchData();
+                    }
+                },
+
+                async submitAbastecimento() {
+                    if(!this.formAbast.litros || !this.formAbast.valor) return;
+                    this.sending = true;
+                    await this.post({
+                        action: 'abastecimento',
+                        data: new Date().toISOString().split('T')[0],
+                        km: Number(this.formAbast.km),
+                        litros: Number(this.formAbast.litros),
+                        valor: Number(this.formAbast.valor),
+                        posto: 'App Enterprise'
+                    });
+                    this.modalAbastOpen = false;
+                    this.formAbast.litros = ''; this.formAbast.valor = '';
+                    this.sending = false;
+                    await this.fetchData();
+                },
+
+                async submitService() {
+                    if(!this.formService.custo) return;
+                    this.sending = true;
+                    await this.post({
+                        action: 'troca',
+                        item: this.activeItem.item,
+                        km: Number(this.formService.km),
+                        custo: Number(this.formService.custo),
+                        marca: this.formService.marca,
+                        oficina: this.formService.oficina,
+                        observacao: this.formService.observacao
+                    });
+                    this.modalServiceOpen = false;
+                    this.sending = false;
+                    await this.fetchData();
+                    if(this.tab === 'historico') this.fetchHistory();
+                },
+
+                async submitNewItem() {
+                    if(!this.formNewItem.item || !this.formNewItem.intervalo_km) return;
+                    this.sending = true;
+                    await this.post({
+                        action: 'novo_item',
+                        item: this.formNewItem.item,
+                        intervalo_km: Number(this.formNewItem.intervalo_km),
+                        intervalo_dias: Number(this.formNewItem.intervalo_dias || 365),
+                        km_atual: this.data.kmAtual
+                    });
+                    this.modalNewItemOpen = false;
+                    this.formNewItem = { item: '', intervalo_km: '', intervalo_dias: '' };
+                    this.sending = false;
+                    await this.fetchData();
+                },
+
+                async post(payload) {
+                    try {
+                        return await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json());
+                    } catch(e) {
+                        alert("Comando enviado! Verifique se os dados apareceram.");
+                        // Recarrega para garantir
+                        setTimeout(() => this.fetchData(), 1000);
+                    }
+                },
+
+                formatDate(dateString) {
+                    if(!dateString) return '--/--';
+                    return new Date(dateString).toLocaleDateString('pt-BR');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
